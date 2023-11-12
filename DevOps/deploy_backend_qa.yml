@@ -1,0 +1,36 @@
+version: "3"
+services:
+  backend:
+    restart: unless-stopped
+    image: 192.168.18.240:5000/flytics:qa
+    container_name: flytics_backend_qa
+    depends_on:
+      - mongo
+    environment:
+      - SERVER_PORT=7031
+      - KEY_SECRET=anything_can_be_written
+      #- DB_CONNECTION_STRING=mongodb://root:example@mongo:27017/
+      - DB_CONNECTION_STRING=mongodb+srv://waqas:tech123@flytics.m9tyf.mongodb.net/?retryWrites=true&w=majority
+    ports:
+      - "7031:7031"
+  
+  mongo:
+    image: mongo
+    restart: unless-stopped
+    container_name: flytics_db_qa
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: root
+      MONGO_INITDB_ROOT_PASSWORD: example
+    volumes:
+      - /home/techgenix/dockerVolume/Flytics/data/db:/data/db
+
+  mongo-express:
+    image: mongo-express
+    restart: unless-stopped
+    container_name: flytics_mongoexpress_qa
+    ports:
+      - 7032:8081
+    environment:
+      ME_CONFIG_MONGODB_ADMINUSERNAME: root
+      ME_CONFIG_MONGODB_ADMINPASSWORD: example
+      ME_CONFIG_MONGODB_URL: mongodb://root:example@mongo:27017/

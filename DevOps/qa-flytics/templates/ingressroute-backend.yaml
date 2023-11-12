@@ -1,0 +1,15 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: flytics-backend-qa-ingressroute
+  namespace: flytics
+  namespace: flytics
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`qa.backend.flytics.techgenix.waqas-altaf-shah.com`)
+      kind: Rule
+      services:
+        - name: flytics-backend-qa-service
+          port: 80

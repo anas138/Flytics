@@ -1,0 +1,28 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flytics-redis-qa
+  namespace: flytics
+  labels:
+    app: flytics-redis-qa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flytics-redis-qa
+  template:
+    metadata:
+      labels:
+        app: flytics-redis-qa
+    spec:
+      containers:
+      - name: flytics-redis-qa
+        image: redis:5
+        ports:
+        - containerPort: 6379
+        # resources:
+        #   limits:
+        #     memory: "1Gi"
+        #     cpu: "500m"
+        # env:
+        # - name: SERVER_PORT

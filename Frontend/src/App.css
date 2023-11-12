@@ -1,0 +1,8 @@
+.App {
+  font-family: 'Poppins', sans-serif !important;
+  text-align: center;
+  width: 100vw;
+  /* max-width: 1280px; */
+  height: 100vh;
+  overflow-y: auto;
+}

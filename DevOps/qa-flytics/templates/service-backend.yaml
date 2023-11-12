@@ -1,0 +1,12 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: flytics-backend-qa-service
+  namespace: flytics
+spec:
+  selector:
+    app: flytics-backend-qa
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 80

@@ -1,0 +1,16 @@
+FROM node:14 as builder
+WORKDIR /usr/src/app
+VOLUME [ "./build" ]
+
+COPY package*.json ./
+
+## Installing dependencies
+RUN npm ci
+
+# Copying source code to the container
+COPY . .
+RUN npm run build
+
+
+FROM scratch as export-stage
+COPY --from=builder /usr/src/app/build /

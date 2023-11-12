@@ -1,0 +1,210 @@
+stages:
+  - quality_check
+  - build
+  - deploy
+
+
+include:
+  - template: Code-Quality.gitlab-ci.yml
+
+code_quality:
+  stage: quality_check
+  tags:
+    #- docker_executor4
+    - docker_runner_new
+  artifacts:
+    paths: [gl-code-quality-report.json]
+  allow_failure: true
+  when: manual
+
+
+sonarqube-check-backend:
+  stage: quality_check
+  tags:
+    - docker_executor4
+  image: 
+    name: sonarsource/sonar-scanner-cli:latest
+    entrypoint: [""]
+  variables:
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"  # Defines the location of the analysis task cache
+    GIT_DEPTH: "0"  # Tells git to fetch all the branches of the project, required by the analysis task
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+    - .sonar/cache
+  script:
+    - cd Backend
+    - sonar-scanner -X
+  allow_failure: true
+  only:
+    - main # or the name of your main branch
+
+sonarqube-check-frontend:
+  stage: quality_check
+  tags:
+    - docker_executor4
+  image: 
+    name: sonarsource/sonar-scanner-cli:latest
+    entrypoint: [""]
+  variables:
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"  # Defines the location of the analysis task cache
+    GIT_DEPTH: "0"  # Tells git to fetch all the branches of the project, required by the analysis task
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+    - .sonar/cache
+  script:
+    - cd Frontend
+    - sonar-scanner -X
+  allow_failure: true
+  only:
+    - main # or the name of your main branch
+
+sonarqube-check-overall:
+  stage: quality_check
+  tags:
+    - docker_executor4
+  image: 
+    name: sonarsource/sonar-scanner-cli:latest
+    entrypoint: [""]
+  variables:
+    SONAR_USER_HOME: "${CI_PROJECT_DIR}/.sonar"  # Defines the location of the analysis task cache
+    GIT_DEPTH: "0"  # Tells git to fetch all the branches of the project, required by the analysis task
+  cache:
+    key: "${CI_JOB_NAME}"
+    paths:
+    - .sonar/cache
+  script:
+    - sonar-scanner -X
+  allow_failure: true
+  only:
+    - main # or the name of your main branch
+
+build-for-qa:
+  stage: build
+  tags:
+    - shell_runner4
+  script:
+    - number=$(date -u +"%y.%m.%d.%H.%M")
+    - mkdir temp
+    - echo $number > temp/tag_variable.txt
+    - cd Frontend
+    - bash change_base_url.sh qa.backend.flytics.techgenix.waqas-altaf-shah.com
+    - docker build -t 192.168.18.240:5000/flytics-frontend:qa .
+    - docker image tag 192.168.18.240:5000/flytics-frontend:qa 192.168.18.240:5000/flytics-frontend:qa.$number
+    - docker push 192.168.18.240:5000/flytics-frontend:qa
+    - docker push 192.168.18.240:5000/flytics-frontend:qa.$number
+    #-
+    - cd ../Backend
+    - docker build -t 192.168.18.240:5000/flytics:qa.$number .
+    - docker image tag 192.168.18.240:5000/flytics:qa.$number 192.168.18.240:5000/flytics:qa
+    #- 
+    - docker push 192.168.18.240:5000/flytics:qa.$number
+    - docker push 192.168.18.240:5000/flytics:qa
+  when: manual
+  artifacts:
+    paths:
+      - temp/tag_variable.txt
+  only:
+    - development
+    - main 
+    - /^devops*/
+
+
+build-image-backend:
+  stage: build
+  tags:
+    - shell_runner4
+  script:
+    - cd Backend
+    - docker build -t 192.168.18.240:5000/flytics:testing .
+    - docker image tag 192.168.18.240:5000/flytics:testing 192.168.18.240:5000/flytics:$CI_COMMIT_REF_SLUG.$(git rev-list --count HEAD)
+    - docker image tag 192.168.18.240:5000/flytics:testing 192.168.18.240:5000/flytics:$CI_COMMIT_REF_SLUG
+    - docker push 192.168.18.240:5000/flytics:testing
+    - docker push 192.168.18.240:5000/flytics:$CI_COMMIT_REF_SLUG.$(git rev-list --count HEAD)
+    - docker push 192.168.18.240:5000/flytics:$CI_COMMIT_REF_SLUG
+  only:
+    - /^devop*/
+    - /^backend*/
+    - development
+    - deployment
+    - /^main*/
+    - main
+
+deploy-QA:
+  stage: deploy
+  tags:
+    - shell_runner_new
+  script:
+    - export KUBECONFIG=/home/gitlab-runner/.kube/kubeconfig PATH=$PATH:/var/lib/rancher/rke2/bin
+    # - kubectl rollout restart deployment flytics-frontend-qa -n flytics
+    # - kubectl rollout restart deployment flytics-backend-qa -n flytics
+    # - kubectl rollout status deployment flytics-frontend-qa -n flytics --timeout=2s
+    # - kubectl rollout status deployment flytics-backend-qa -n flytics --timeout=2s
+    - number=$(cat temp/tag_variable.txt)
+    - echo $number
+    - cd DevOps
+    - helm upgrade flytics-qa qa-flytics --set image.frontend.tag=qa.$number --set image.backend.tag=qa.$number -n flytics
+
+  environment:
+    name: QA/$CI_COMMIT_REF_SLUG/$CI_COMMIT_SHA
+    url: http://qa.frontend.flytics.techgenix.waqas-altaf-shah.com
+  needs:
+    - job: build-for-qa
+  only:
+    - main
+    - development
+    - /^devops*/
+
+deploy-Azure-backend:
+  stage: deploy
+  tags:
+    - shell_runner4
+  script:
+    - cd Backend
+    - . /home/techgenix/.nvm/nvm.sh
+    - nvm use 14
+    - npm ci 
+    - npm run build 
+    - rsync --delete -avz dist node_modules azureuser@20.216.38.173:/home/azureuser/projects/flytics/Backend
+    - ssh azureuser@20.216.38.173 "cd /home/azureuser/projects/flytics/Backend; pm2 restart flytics-backend"
+    #- ssh azureuser@20.216.38.173 "cd /home/azureuser/projects/flytics/Backend ; git reset --hard; git pull; npm ci; npm run build; pm2 restart flytics-backend"
+  when: manual
+  environment:
+    name: production-backend/$CI_COMMIT_REF_SLUG/$CI_COMMIT_SHA
+    url: http://20.216.38.173:7031/
+  only:
+    - deployment
+    - main
+    - /^devop*/
+
+deploy-Azure-frontend:
+  stage: deploy
+  tags:
+    - shell_runner4
+  script:
+    - cd Frontend
+    - bash change_base_url.sh 20.216.38.173:7031
+    #- docker buildx build -f build_frontend -o build --no-cache .
+    # - ls -lh
+    - . /home/techgenix/.nvm/nvm.sh
+    - nvm use 14.18.2
+    - rm -rf build
+    - export CI=false
+    - npm install 
+    - npm run build
+    - chmod -R 777 build
+    - ls -lh
+    - rsync --delete -avz build azureuser@20.216.38.173:/home/azureuser/projects/flytics/frontend
+    #- scp -r build azureuser@20.216.38.173:/home/azureuser/projects/flytics/frontend
+  when: manual
+  environment:
+    name: production-frontend/$CI_COMMIT_REF_SLUG/$CI_COMMIT_SHA
+    url: http://20.216.38.173/
+  artifacts:
+    paths: 
+      - Frontend/build
+  only:
+    - deployment
+    - main
+    - /^devop*/

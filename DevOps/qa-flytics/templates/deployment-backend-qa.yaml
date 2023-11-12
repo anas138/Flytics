@@ -1,0 +1,42 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flytics-backend-qa
+  namespace: flytics
+  labels:
+    app: flytics-backend-qa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flytics-backend-qa
+  template:
+    metadata:
+      labels:
+        app: flytics-backend-qa
+    spec:
+      containers:
+      - name: flytics-backend-qa
+        image: "tech.registry/flytics:{{.Values.image.backend.tag}}"
+        resources:
+          limits:
+            memory: "1Gi"
+            cpu: "500m"
+        env:
+        - name: SERVER_PORT
+          value: "80"
+        - name: KEY_SECRET
+          value: "anything_can_be_written"
+        - name: DB_CONNECTION_STRING
+          value: "mongodb://techgenix:tech123@flytics-db-mongo-service"
+        - name: AZURE_STORAGE_CONNECTION_STRING
+          value: "DefaultEndpointsProtocol=https;AccountName=flytics;AccountKey=7J6EBh47+w2lPsNTg47m01xSbSQS7w6UzDPpKNhK9FHp5yxuhZxpgm7j4UdT+dMB3ZmSqbiKfyAImxmmvXu14A==;EndpointSuffix=core.windows.net"
+        - name: AZURE_OPERATOR_CONTAINER_NAME
+          value: "flytics-face-ids-qa"
+        - name: REDIS_HOST_QUEUE
+          value: "flytics-redis-qa-service"
+        - name: REDIS_PORT_QUEUE
+          value: "6379"
+        ports:
+        - containerPort: 80
+        imagePullPolicy: Always

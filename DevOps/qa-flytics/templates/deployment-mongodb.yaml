@@ -1,0 +1,40 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flyticss-db-mongo
+  namespace: flytics
+  labels:
+    app: flyticss-db-mongo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flyticss-db-mongo
+  template:
+    metadata:
+      labels:
+        app: flyticss-db-mongo
+    spec:
+      containers:
+      - name: flyticss-db-mongo
+        image: mongo
+        # resources:
+        #   limits:
+        #     memory: "1Gi"
+        #     cpu: "1000m"
+        env:
+        - name: MONGO_INITDB_ROOT_USERNAME
+          value: "techgenix"
+        - name: MONGO_INITDB_ROOT_PASSWORD
+          value: "tech123"
+        - name: DB_CONNECTION_STRING
+          value: "mongodb+srv://waqas:tech123@flytics.m9tyf.mongodb.net/?retryWrites=true&w=majority"
+        ports:
+        - containerPort: 27017
+        volumeMounts:
+          - name: flytics-mongodb-qa
+            mountPath: /data/db
+      volumes: 
+      - name: flytics-mongodb-qa
+        persistentVolumeClaim:
+          claimName: flytics-mongodb-qa

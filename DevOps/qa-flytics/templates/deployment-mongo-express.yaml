@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flytics-mongo-express
+  namespace: flytics
+  labels:
+    app: flytics-mongo-express
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flytics-mongo-express
+  template:
+    metadata:
+      labels:
+        app: flytics-mongo-express
+    spec:
+      containers:
+      - name: flytics-mongo-express
+        image: mongo-express
+        ports:
+        - containerPort: 8081
+        env:
+        - name: ME_CONFIG_MONGODB_ADMINUSERNAME
+          value: "techgenix"
+        - name: ME_CONFIG_MONGODB_ADMINPASSWORD
+          value: "tech123"
+        - name: ME_CONFIG_MONGODB_SERVER
+          value: "flytics-db-mongo-service"
+        # resources:
+        #   limits:
+        #     memory: "1Gi"
+        #     cpu: "1000m"

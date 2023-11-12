@@ -1,0 +1,27 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: flytics-frontend-qa
+  namespace: flytics
+  labels:
+    app: flytics-frontend-qa
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: flytics-frontend-qa
+  template:
+    metadata:
+      labels:
+        app: flytics-frontend-qa
+    spec:
+      containers:
+      - name: flytics-frontend-qa
+        image: "tech.registry/flytics-frontend:{{.Values.image.frontend.tag}}"
+        imagePullPolicy: Always
+        # resources:
+        #   limits:
+        #     memory: "1Gi"
+        #     cpu: "1000m"
+        ports:
+        - containerPort: 80

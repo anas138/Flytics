@@ -1,0 +1,14 @@
+apiVersion: traefik.containo.us/v1alpha1
+kind: IngressRoute
+metadata:
+  name: flytics-mongo-express-ingressroute
+  namespace: flytics
+spec:
+  entryPoints:
+    - web
+  routes:
+    - match: Host(`mongo-express.flytics.techgenix.waqas-altaf-shah.com`)
+      kind: Rule
+      services:
+        - name: flytics-mongo-express-service
+          port: 8081
